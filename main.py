@@ -88,6 +88,34 @@ class OutboundApp(QMainWindow):
             with open(self.selected_file, "rb") as f:
                 data_to_read = BytesIO(f.read())
 
+            # 1. 파일이 암호화되어 있는지 확인
+            office_file = msoffcrypto.OfficeFile(data_to_read)
+            is_encrypted = office_file.is_encrypted()
+
+            if is_encrypted:
+                if not password:
+                    # 비밀번호가 있는데 입력 안 한 경우
+                    QMessageBox.warning(self, "알림", "이 파일은 암호화되어 있습니다. 비밀번호가 필요합니다.")
+                    return
+
+                try:
+                    decrypted_data = BytesIO()
+                    office_file.load_key(password=password)
+                    office_file.decrypt(decrypted_data)
+                    data_to_read = decrypted_data
+                except Exception as e:
+                    # 발생한 에러 메시지 안에 'password'라는 단어가 있는지 체크
+                    if "password" in str(e).lower():
+                        QMessageBox.critical(self, "오류", "비밀번호가 틀렸습니다. 다시 확인해 주세요.")
+                    else:
+                        QMessageBox.critical(self, "오류", f"처리 중 오류 발생: {e}")
+                    return
+            else:
+                if password:
+                    # 비밀번호가 없는데 입력한 경우 (경고 후 진행하거나 차단)
+                    QMessageBox.information(self, "알림", "비밀번호가 설정되지 않은 파일입니다. 입력한 비밀번호를 무시하고 진행합니다.")
+                    # 무시하고 진행하려면 password = "" 처리 혹은 그냥 통과
+
             if password:
                 decrypted_data = BytesIO()
                 office_file = msoffcrypto.OfficeFile(data_to_read)
