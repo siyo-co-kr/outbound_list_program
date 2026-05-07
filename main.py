@@ -46,7 +46,7 @@ class OutboundApp(QMainWindow):
         self.group = QButtonGroup(self)
         radio_layout = QHBoxLayout()
 
-        self.periods = ["전체", "1개월 이내", "3개월 이내", "6개월 이내", "1년 이내"]
+        self.periods = ["전체", "1개월 이내", "3개월 이내", "6개월 이내", "1년 이내", "3년 이내", "5년 이내"]
         for i, text in enumerate(self.periods):
             rb = QRadioButton(text)
             if i == 0: rb.setChecked(True)
@@ -108,7 +108,7 @@ class OutboundApp(QMainWindow):
             # 필터링
             if period_option != "전체":
                 today = datetime.now()
-                delta_map = {"1개월 이내": 30, "3개월 이내": 90, "6개월 이내": 180, "1년 이내": 365}
+                delta_map = {"1개월 이내": 30, "3개월 이내": 90, "6개월 이내": 180, "1년 이내": 365, "3년 이내": 1095, "5년 이내": 1825}
                 threshold_date = today - timedelta(days=delta_map[period_option])
                 df = df[df['마지막 내원일자'] >= threshold_date]
 
