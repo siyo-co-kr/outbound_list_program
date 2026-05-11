@@ -8,3 +8,16 @@
 # Datasource local storage ignored files
 /dataSources/
 /dataSources.local.xml
+
+# 빌드 관련 폴더 제외
+build/
+dist/
+*.spec
+
+# 파이썬 캐시 파일 제외
+__pycache__/
+*.py[cod]
+
+# 가상환경 제외
+venv/
+.venv/
