@@ -17,7 +17,8 @@
 
 ## 🛠 실행 환경 및 설치 방법
 1. 요구 사항
-    - Python 3.8 이상
+    - 개발 환경 : Python 3.12.10
+    - 최소 요구 사양 : Python 3.8 이상
     - 필수 라이브러리: `pandas`, `PySide6`, `msoffcrypto-tools`, `openpyxl`
 2. 라이브러리 설치
   ```
