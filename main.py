@@ -153,7 +153,8 @@ class OutboundApp(QMainWindow):
 
             # 3. 연락처 정제
             df['연락처'] = df['연락처'].str.replace(r'[^0-9]', '', regex=True)
-            df.loc[df['연락처'].str.len() == 10, '연락처'] = '010' + df['연락처'].str[2:]
+            mask_fix = (df['연락처'].str.len() == 10) & (df['연락처'].str.startswith('10'))
+            df.loc[mask_fix, '연락처'] = '010' + df['연락처'].str[2:]
             df_final = df.drop_duplicates(subset=['연락처'])
             df_final = df_final[df_final['연락처'].str.match(r'^010\d{8}$')].copy()
 
