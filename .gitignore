@@ -1,6 +1,6 @@
 # 디폴트 무시된 파일
 /shelf/
-/.idea/workspace.xml
+/.idea/
 # 에디터 기반 HTTP 클라이언트 요청
 /httpRequests/
 # 쿼리 파일을 포함한 무시된 디폴트 폴더
@@ -10,14 +10,14 @@
 /dataSources.local.xml
 
 # 빌드 관련 폴더 제외
-build/
-dist/
+/build/
+/dist/
 *.spec
 
 # 파이썬 캐시 파일 제외
-__pycache__/
+/__pycache__/
 *.py[cod]
 
 # 가상환경 제외
-venv/
-.venv/
+/venv/
+/.venv/
