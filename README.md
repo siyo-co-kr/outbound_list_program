@@ -19,10 +19,10 @@
 1. 요구 사항
     - 개발 환경 : Python 3.12.10
     - 최소 요구 사양 : Python 3.8 이상
-    - 필수 라이브러리: `pandas`, `PySide6`, `msoffcrypto-tools`, `openpyxl`, `pyinstaller`
+    - 필수 라이브러리: `pandas`, `PySide6`, `msoffcrypto-tool`, `openpyxl`, `pyinstaller`
 2. 라이브러리 설치
   ```
-pip install pandas PySide6 msoffcrypto-tools openpyxl pyinstaller
+pip install pandas PySide6 msoffcrypto-tool openpyxl pyinstaller
 ```
 3. 실행 및 빌드 방법
    - **소스 코드 실행**: `python main.py`
