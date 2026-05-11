@@ -59,3 +59,8 @@ pip install pandas PySide6 msoffcrypto-tool openpyxl pyinstaller
 - **중복 제거**: 동일한 연락처가 있을 경우, 데이터의 무결성을 위해 중복된 항목은 자동으로 제거됩니다.
 - **날짜 오류 처리**: 날짜 형식이 잘못된 데이터는 필터링 과정에서 자동으로 제외될 수 있으니 원본 데이터를 확인해 주세요.
 - **보안**: 본 프로그램은 데이터를 외부 서버로 전송하지 않으며, 로컬 환경에서만 처리됩니다.
+
+---
+
+## 📥 다운로드
+- [최신 실행 파일(.exe) 다운로드 받기](https://github.com/huch99/outbound_iist_program/releases/latest)
