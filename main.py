@@ -6,7 +6,7 @@ from app_modules.ui_components.outbound_limit_ui import OutboundLimitApp
 class MainWindow(QMainWindow):
     def __init__(self):
         super().__init__()
-        self.setWindowTitle("아웃바운드 리스트 필터링 도구 v2.0.0")
+        self.setWindowTitle("아웃바운드 도구 v2.0.0")
         self.setMinimumWidth(600)
 
         # 메인 탭 위젯 생성
