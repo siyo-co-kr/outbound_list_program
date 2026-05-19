@@ -12,7 +12,7 @@ def outbound_limit(file_path, password):
 
     # 3. 컬럼 매핑 적용
     mapping_result = {}
-    required_keys = ['차트번호', '이름', '연락처', '마지막 내원일자']
+    required_keys = ['차트번호', '이름', '생년월일','연락처', '마지막 내원일자']
 
     for key in required_keys:
         actual_col = find_actual_column(df.columns.tolist(), key)
@@ -39,7 +39,7 @@ def outbound_limit(file_path, password):
     df['연락처'] = df['연락처'].astype(str).str.replace(r'\.0$', '', regex=True)
     df['연락처'] = df['연락처'].str.replace(r'[^0-9]', '', regex=True)
 
-    # 4. 최종 출력할 컬럼 정의 (이제 '아웃바운드 제한 설정'은 확실히 존재함)
+    # 4. 최종 출력할 컬럼 정의
     final_keys = required_keys + ['아웃바운드 제한 설정']
     df_final = df[final_keys].copy()
 
