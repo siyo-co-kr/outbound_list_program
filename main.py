@@ -1,6 +1,7 @@
 import sys
 from PySide6.QtWidgets import QApplication, QMainWindow, QTabWidget
 from app_modules.ui_components.outbound_list_filter_ui import OutboundApp
+from app_modules.ui_components.outbound_limit_ui import OutboundLimitApp
 
 class MainWindow(QMainWindow):
     def __init__(self):
@@ -12,13 +13,13 @@ class MainWindow(QMainWindow):
         self.tabs = QTabWidget()
         self.setCentralWidget(self.tabs)
 
-        # 1. 아웃바운드 필터 탭 추가
+        # 1. 아웃바운드 필터 탭
         self.outbound_tab = OutboundApp()
-        self.tabs.addTab(self.outbound_tab, "데이터 필터링")
+        self.tabs.addTab(self.outbound_tab, "📄아웃바운드 리스트 필터")
 
-        # 2. (추후 예시) 다른 기능 탭 추가 시
-        # self.other_tab = OtherFeatureApp()
-        # self.tabs.addTab(self.other_tab, "추가 기능")
+        # 2. 아웃바운드 제한 리스트 탭
+        self.limit_tab = OutboundLimitApp()
+        self.tabs.addTab(self.limit_tab, "🚫아웃바운드 제한 리스트")
 
 def main():
     app = QApplication(sys.argv)
