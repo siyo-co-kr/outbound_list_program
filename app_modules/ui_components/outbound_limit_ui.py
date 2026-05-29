@@ -1,5 +1,3 @@
-import os
-import pandas as pd
 from PySide6.QtWidgets import (QWidget, QPushButton, QVBoxLayout,
                                QFileDialog, QLineEdit, QLabel, QMessageBox,
                                QHBoxLayout)

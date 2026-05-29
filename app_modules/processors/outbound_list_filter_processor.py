@@ -1,7 +1,10 @@
 from .excel_password_processor import decrypt_excel
 import pandas as pd
-from datetime import datetime, timedelta
+from datetime import datetime
+from dateutil.relativedelta import relativedelta
 from .column_utils import find_actual_column
+
+
 def outbound_list_filter(file_path, password, period_type, period_value, use_birth, start_date, end_date):
     """
     엑셀 파일을 복호화하고 내원일/생년월일 필터링 및 연락처 정제를 수행합니다.
@@ -33,12 +36,10 @@ def outbound_list_filter(file_path, password, period_type, period_value, use_bir
         df['마지막 내원일자'] = pd.to_datetime(df['마지막 내원일자'], errors='coerce')
 
     if period_type == "개월":
-        days = int(period_value) * 30
-        threshold = datetime.now() - timedelta(days=days)
+        threshold = datetime.now() - relativedelta(months=int(period_value))
         df = df[df['마지막 내원일자'] >= threshold]
     elif period_type == "년":
-        days = int(period_value) * 365
-        threshold = datetime.now() - timedelta(days=days)
+        threshold = datetime.now() - relativedelta(years=int(period_value))
         df = df[df['마지막 내원일자'] >= threshold]
 
     else:

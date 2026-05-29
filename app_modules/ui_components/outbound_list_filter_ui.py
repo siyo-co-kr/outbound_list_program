@@ -1,5 +1,3 @@
-import re
-import os
 from PySide6.QtWidgets import (QWidget, QPushButton, QVBoxLayout,
                                QFileDialog, QLineEdit, QLabel, QMessageBox,
                                QRadioButton, QButtonGroup, QHBoxLayout, QDateEdit,
@@ -33,7 +31,7 @@ class OutboundApp(QWidget):
         file_layout.addWidget(self.file_path_display)
         layout.addLayout(file_layout)
 
-        # 2. 암호 입력부  - 수정 중
+        # 2. 암호 입력부
         pass_layout = QVBoxLayout()
         self.pass_label = QLabel("2. 파일 비밀번호 입력 (없을 시 미입력)")
         self.pass_label.setStyleSheet("font-weight: bold; margin-bottom: 5px; margin-top: 10px;")
