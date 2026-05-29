@@ -1,7 +1,44 @@
 import sys
+import os
 from PySide6.QtWidgets import QApplication, QMainWindow, QTabWidget, QSplashScreen
 from PySide6.QtCore import Qt
 from PySide6.QtGui import QPixmap, QColor, QFont, QPainter
+
+
+def _create_desktop_shortcut_once():
+    """최초 실행 시 바탕화면 바로가기 자동 생성 (PyInstaller 빌드 환경 전용)"""
+    if not getattr(sys, 'frozen', False):
+        return  # 소스 코드 직접 실행 시 건너뜀
+
+    import ctypes
+    import ctypes.wintypes
+    import subprocess
+
+    # 실제 바탕화면 경로 조회 (OneDrive 리다이렉트 환경 포함 대응)
+    CSIDL_DESKTOPDIRECTORY = 0x0010
+    buf = ctypes.create_unicode_buffer(ctypes.wintypes.MAX_PATH)
+    ctypes.windll.shell32.SHGetFolderPathW(None, CSIDL_DESKTOPDIRECTORY, None, 0, buf)
+    desktop = buf.value
+
+    shortcut_path = os.path.join(desktop, "아웃바운드 도구.lnk")
+    if os.path.exists(shortcut_path):
+        return  # 이미 바로가기가 있으면 건너뜀
+
+    exe_path = sys.executable
+    exe_dir = os.path.dirname(exe_path)
+
+    ps_script = (
+        f'$ws = New-Object -ComObject WScript.Shell; '
+        f'$sc = $ws.CreateShortcut("{shortcut_path}"); '
+        f'$sc.TargetPath = "{exe_path}"; '
+        f'$sc.WorkingDirectory = "{exe_dir}"; '
+        f'$sc.Description = "아웃바운드 도구 v2.0.0"; '
+        f'$sc.Save()'
+    )
+    subprocess.run(
+        ["powershell", "-NoProfile", "-NonInteractive", "-Command", ps_script],
+        capture_output=True
+    )
 
 
 def _make_splash_pixmap() -> QPixmap:
@@ -12,7 +49,6 @@ def _make_splash_pixmap() -> QPixmap:
     painter = QPainter(pixmap)
     painter.setRenderHint(QPainter.RenderHint.Antialiasing)
 
-    # 제목
     title_font = QFont()
     title_font.setPointSize(18)
     title_font.setBold(True)
@@ -20,7 +56,6 @@ def _make_splash_pixmap() -> QPixmap:
     painter.setPen(QColor("white"))
     painter.drawText(0, 0, 420, 100, Qt.AlignmentFlag.AlignCenter, "아웃바운드 도구 v2.0.0")
 
-    # 부제목
     sub_font = QFont()
     sub_font.setPointSize(11)
     painter.setFont(sub_font)
@@ -52,6 +87,9 @@ class MainWindow(QMainWindow):
 
 
 def main():
+    # 최초 실행 시 바탕화면 바로가기 자동 생성
+    _create_desktop_shortcut_once()
+
     app = QApplication(sys.argv)
 
     # 스플래시 화면을 즉시 표시 (무거운 모듈 임포트 전)
