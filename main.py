@@ -32,7 +32,7 @@ def _create_desktop_shortcut_once():
         f'$sc = $ws.CreateShortcut("{shortcut_path}"); '
         f'$sc.TargetPath = "{exe_path}"; '
         f'$sc.WorkingDirectory = "{exe_dir}"; '
-        f'$sc.Description = "아웃바운드 도구 v2.0.0"; '
+        f'$sc.Description = "아웃바운드 도구 v2.1.0"; '
         f'$sc.Save()'
     )
     subprocess.run(
@@ -54,7 +54,7 @@ def _make_splash_pixmap() -> QPixmap:
     title_font.setBold(True)
     painter.setFont(title_font)
     painter.setPen(QColor("white"))
-    painter.drawText(0, 0, 420, 100, Qt.AlignmentFlag.AlignCenter, "아웃바운드 도구 v2.0.0")
+    painter.drawText(0, 0, 420, 100, Qt.AlignmentFlag.AlignCenter, "아웃바운드 도구 v2.1.0")
 
     sub_font = QFont()
     sub_font.setPointSize(11)
@@ -69,7 +69,7 @@ def _make_splash_pixmap() -> QPixmap:
 class MainWindow(QMainWindow):
     def __init__(self):
         super().__init__()
-        self.setWindowTitle("아웃바운드 도구 v2.0.0")
+        self.setWindowTitle("아웃바운드 도구 v2.1.0")
         self.setMinimumWidth(600)
 
         self.tabs = QTabWidget()

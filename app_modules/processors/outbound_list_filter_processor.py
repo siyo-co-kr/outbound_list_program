@@ -12,13 +12,15 @@ def outbound_list_filter(file_path, password, period_type, period_value, use_bir
     # 1. 복호화 실행
     data_to_read = decrypt_excel(file_path, password)
 
-    # 2. 데이터 로드
-    df = pd.read_excel(data_to_read, sheet_name=1, dtype={'연락처': str})
+    # 2. 데이터 로드 (시트가 2개 이상이면 두 번째 시트, 1개면 첫 번째 시트 사용)
+    excel_file = pd.ExcelFile(data_to_read)
+    sheet_idx = 1 if len(excel_file.sheet_names) > 1 else 0
+    df = pd.read_excel(excel_file, sheet_name=sheet_idx)
     df.columns = df.columns.str.strip()
 
     # 3. 컬럼 매핑 적용
     mapping_result = {}
-    required_keys = ['차트번호', '이름', '연락처', '마지막 내원일자']
+    required_keys = ['차트번호', '환자 이름', '휴대폰번호', '마지막 내원일자']
     if use_birth:
         required_keys.append('생년월일')
 
@@ -32,7 +34,7 @@ def outbound_list_filter(file_path, password, period_type, period_value, use_bir
     df = df.rename(columns={v: k for k, v in mapping_result.items()})
 
     # 4. 필터링 (내원일 기준)
-    if period_type != "전체":  # "전체"가 아닐 때만 필터링 수행
+    if period_type != "전체":
         df['마지막 내원일자'] = pd.to_datetime(df['마지막 내원일자'], errors='coerce')
 
     if period_type == "개월":
@@ -42,9 +44,6 @@ def outbound_list_filter(file_path, password, period_type, period_value, use_bir
         threshold = datetime.now() - relativedelta(years=int(period_value))
         df = df[df['마지막 내원일자'] >= threshold]
 
-    else:
-        pass
-
     # 5. 필터링 (생년월일 기준)
     if use_birth:
         df['생년월일'] = pd.to_datetime(df['생년월일'], errors='coerce')
@@ -52,14 +51,13 @@ def outbound_list_filter(file_path, password, period_type, period_value, use_bir
         e_date = datetime.combine(end_date, datetime.max.time())
         df = df[(df['생년월일'] >= s_date) & (df['생년월일'] <= e_date)]
 
-    # 6. 연락처 정제 및 중복 제거
-    df['연락처'] = df['연락처'].astype(str).str.replace(r'[^0-9]', '', regex=True)
-    mask = (df['연락처'].str.len() == 10) & (df['연락처'].str.startswith('10'))
-    df.loc[mask, '연락처'] = '010' + df['연락처'].str[2:]
+    # 6. 휴대폰번호 정제 및 중복 제거
+    df['휴대폰번호'] = df['휴대폰번호'].astype(str).str.replace(r'[^0-9]', '', regex=True)
+    mask = (df['휴대폰번호'].str.len() == 10) & (df['휴대폰번호'].str.startswith('10'))
+    df.loc[mask, '휴대폰번호'] = '010' + df['휴대폰번호'].str[2:]
 
-    df_final = df.drop_duplicates(subset=['연락처'])
-    df_final = df_final[df_final['연락처'].str.match(r'^010\d{8}$')].copy()
+    df_final = df.drop_duplicates(subset=['휴대폰번호'])
+    df_final = df_final[df_final['휴대폰번호'].str.match(r'^010\d{8}$')].copy()
 
-    # 7. 최종 데이터 정리 및 반환
-    df_final['차트번호'] = ""
-    return df_final[['차트번호', '이름', '연락처']]
+    # 7. 최종 데이터 반환 (차트번호 원본 유지)
+    return df_final[['차트번호', '환자 이름', '휴대폰번호']]
