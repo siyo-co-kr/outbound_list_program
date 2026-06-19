@@ -79,10 +79,47 @@ class OutboundApp(QWidget):
         period_layout.addLayout(period_content_layout)
         layout.addLayout(period_layout)
 
+        # 장기 미내원 기준 설정
+        period_layout_old = QVBoxLayout()
+
+        self.period_label_old = QLabel("4. 내원일 기준 필터(설정 기준보다 오래된 사람만)")
+        self.period_label_old.setStyleSheet("font-weight: bold; margin-bottom: 5px; margin-top: 10px;")
+        period_layout_old.addWidget(self.period_label_old)
+
+        period_content_layout_old = QHBoxLayout()
+
+        self.period_value_old = QLineEdit("6")
+        self.period_value_old.setFixedWidth(50)
+        self.period_value_old.setEnabled(False)
+        period_content_layout_old.addWidget(self.period_value_old)
+
+        self.period_group_old = QButtonGroup(self)
+        self.radio_all_old = QRadioButton("전체")
+        self.radio_month_old = QRadioButton("개월")
+        self.radio_year_old = QRadioButton("년")
+
+        self.radio_all_old.setChecked(True)
+
+        self.period_group_old.addButton(self.radio_all_old)
+        self.period_group_old.addButton(self.radio_month_old)
+        self.period_group_old.addButton(self.radio_year_old)
+
+        self.radio_all_old.toggled.connect(lambda: self.period_value_old.setEnabled(False))
+        self.radio_month_old.toggled.connect(lambda: self.period_value_old.setEnabled(True))
+        self.radio_year_old.toggled.connect(lambda: self.period_value_old.setEnabled(True))
+
+        period_content_layout_old.addWidget(self.radio_all_old)
+        period_content_layout_old.addWidget(self.radio_month_old)
+        period_content_layout_old.addWidget(self.radio_year_old)
+        period_content_layout_old.addStretch()
+
+        period_layout_old.addLayout(period_content_layout_old)
+        layout.addLayout(period_layout_old)
+
         # 4. 생년월일 필터링 (선택 사항)
         birth_layout = QVBoxLayout()
 
-        self.birth_label = QLabel("4. 생년월일 기준 필터")
+        self.birth_label = QLabel("5. 생년월일 기준 필터")
         self.birth_label.setStyleSheet("font-weight: bold; margin-bottom: 5px; margin-top: 10px;")
         birth_layout.addWidget(self.birth_label)
 
@@ -134,12 +171,20 @@ class OutboundApp(QWidget):
             elif self.radio_year.isChecked():
                 period_type = "년"
 
+            period_type_old = "전체"
+            if self.radio_month_old.isChecked():
+                period_type_old = "개월"
+            elif self.radio_year_old.isChecked():
+                period_type_old = "년"
+
             # 2. 데이터 처리 실행
             df_result = outbound_list_filter(
                 file_path=file_path,
                 password=password,
                 period_type=period_type,
+                period_type_old=period_type_old,
                 period_value=self.period_value.text(),
+                period_value_old=self.period_value_old.text(),
                 use_birth=self.check_birth.isChecked(),
                 start_date=self.date_start.date().toPython(),
                 end_date=self.date_end.date().toPython()

@@ -5,7 +5,7 @@ from dateutil.relativedelta import relativedelta
 from .column_utils import find_actual_column
 
 
-def outbound_list_filter(file_path, password, period_type, period_value, use_birth, start_date, end_date):
+def outbound_list_filter(file_path, password, period_type,period_type_old, period_value, period_value_old, use_birth, start_date, end_date):
     """
     엑셀 파일을 복호화하고 내원일/생년월일 필터링 및 연락처 정제를 수행합니다.
     """
@@ -43,6 +43,18 @@ def outbound_list_filter(file_path, password, period_type, period_value, use_bir
     elif period_type == "년":
         threshold = datetime.now() - relativedelta(years=int(period_value))
         df = df[df['마지막 내원일자'] >= threshold]
+
+    # 필터링 (내원일 기준 - 장기 미내원)
+    if period_type_old != "전체":
+        df['마지막 내원일자'] = pd.to_datetime(df['마지막 내원일자'], errors='coerce')
+
+    if period_type_old == "개월":
+        threshold = datetime.now() - relativedelta(months=int(period_value_old))
+        df = df[df['마지막 내원일자'] <= threshold]
+    elif period_type_old == "년":
+        threshold = datetime.now() - relativedelta(years=int(period_value_old))
+        df = df[df['마지막 내원일자'] <= threshold]
+
 
     # 5. 필터링 (생년월일 기준)
     if use_birth:
