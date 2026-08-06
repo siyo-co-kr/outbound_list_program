@@ -1,24 +1,11 @@
-﻿altgraph==0.17.5
-cffi==2.0.0
-cryptography==48.0.0
-et_xmlfile==2.0.0
-msoffcrypto-tool==6.0.0
-numpy==2.4.4
-olefile==0.47
-openpyxl==3.1.5
-packaging==26.2
-pandas==3.0.2
-pefile==2024.8.26
-pycparser==3.0
+# 직접 사용하는 라이브러리만 명시합니다. (나머지는 전이 의존성으로 자동 설치)
+# UI는 표준 라이브러리 tkinter를 사용하므로 별도 패키지가 필요 없습니다.
+
+pandas==3.0.2                # 데이터 필터링/정제
+openpyxl==3.1.5              # .xlsx 읽기 및 템플릿 서식 유지 저장
+msoffcrypto-tool==6.0.0      # 암호가 걸린 엑셀 복호화
+python-dateutil==2.9.0.post0 # relativedelta (내원일 기간 필터)
+xlrd==2.0.2                  # 구형 .xls 읽기
+
+# 빌드 전용
 pyinstaller==6.20.0
-pyinstaller-hooks-contrib==2026.5
-PySide6==6.11.0
-PySide6_Addons==6.11.0
-PySide6_Essentials==6.11.0
-python-dateutil==2.9.0.post0
-pywin32-ctypes==0.2.3
-setuptools==82.0.1
-shiboken6==6.11.0
-six==1.17.0
-tzdata==2026.2
-xlrd==2.0.2

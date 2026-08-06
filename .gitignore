@@ -13,6 +13,8 @@
 /build/
 /dist/
 *.spec
+# 단, 빌드에 필요한 spec 파일은 추적 (resources 번들 설정 포함)
+!Outbound_filter_tool.spec
 
 # 파이썬 캐시 파일 제외
 /__pycache__/

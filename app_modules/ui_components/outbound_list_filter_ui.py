@@ -1,200 +1,143 @@
-from PySide6.QtWidgets import (QWidget, QPushButton, QVBoxLayout,
-                               QFileDialog, QLineEdit, QLabel, QMessageBox,
-                               QRadioButton, QButtonGroup, QHBoxLayout, QDateEdit,
-                               QCheckBox)
-from PySide6.QtCore import Qt, QDate
-from ..processors.outbound_list_filter_processor import outbound_list_filter
+import tkinter as tk
+from datetime import date
+from tkinter import filedialog, messagebox, ttk
 
-class OutboundApp(QWidget):
-    def __init__(self):
-        super().__init__()
+from ..processors.outbound_list_filter_processor import outbound_list_filter
+from ..processors.template_writer import save_outbound_list
+from .widgets import (EXCEL_FILETYPES, EXCEL_SAVE_FILETYPES, FONT_BASE, FONT_SMALL,
+                      GRAY_TEXT, GREEN, GREEN_ACTIVE, NO_FILE, DateEntry, PeriodFilter,
+                      accent_button, section_label, years_ago)
+
+
+class OutboundApp(ttk.Frame):
+    def __init__(self, master):
+        super().__init__(master, padding=(16, 10))
+        self.file_path = None
         self.init_ui()
 
     def init_ui(self):
-        # 전체 레이아웃
-        layout = QVBoxLayout()
+        self.columnconfigure(0, weight=1)
+        row = 0
 
         # 1. 파일 선택부
-        file_layout = QVBoxLayout()
-        self.file_label = QLabel("1. 환자 정보 엑셀 파일을 선택하세요.")
-        self.file_label.setStyleSheet("font-weight: bold; margin-bottom: 5px; margin-top: 10px;")
-        file_layout.addWidget(self.file_label)
+        section_label(self, "1. 환자 정보 엑셀 파일을 선택하세요.").grid(
+            row=row, column=0, sticky="w", pady=(6, 4))
+        row += 1
 
-        self.btn_browse = QPushButton("파일 찾기")
-        self.btn_browse.setStyleSheet("background-color: #4CAF50; color: white; font-weight: bold; height: 40px;")
-        self.btn_browse.setFixedHeight(40)
-        self.btn_browse.clicked.connect(self.browse_file)
-        file_layout.addWidget(self.btn_browse)
+        self.btn_browse = accent_button(self, "파일 찾기", self.browse_file, GREEN, GREEN_ACTIVE)
+        self.btn_browse.grid(row=row, column=0, sticky="ew")
+        row += 1
 
-        self.file_path_display = QLabel("선택된 파일 없음")
-        self.file_path_display.setStyleSheet("color: gray; margin-top: 5px;")
-        file_layout.addWidget(self.file_path_display)
-        layout.addLayout(file_layout)
+        self.file_path_display = ttk.Label(self, text=NO_FILE, foreground=GRAY_TEXT,
+                                           font=FONT_SMALL, wraplength=560, justify="left")
+        self.file_path_display.grid(row=row, column=0, sticky="w", pady=(5, 0))
+        row += 1
 
         # 2. 암호 입력부
-        pass_layout = QVBoxLayout()
-        self.pass_label = QLabel("2. 파일 비밀번호 입력 (없을 시 미입력)")
-        self.pass_label.setStyleSheet("font-weight: bold; margin-bottom: 5px; margin-top: 10px;")
-        pass_layout.addWidget(self.pass_label)
+        section_label(self, "2. 파일 비밀번호 입력 (없을 시 미입력)").grid(
+            row=row, column=0, sticky="w", pady=(14, 4))
+        row += 1
 
-        self.password_edit = QLineEdit()
-        self.password_edit.setEchoMode(QLineEdit.Password)
-        pass_layout.addWidget(self.password_edit)
-        layout.addLayout(pass_layout)
+        self.password_var = tk.StringVar()
+        ttk.Entry(self, textvariable=self.password_var, show="●", font=FONT_BASE).grid(
+            row=row, column=0, sticky="ew")
+        row += 1
 
-        # 3. 내원 기간 설정
-        period_layout = QVBoxLayout()
+        # 3. 내원일 기준 필터 (설정 기준 이내에 내원한 사람만)
+        section_label(self, "3. 내원일 기준 필터").grid(
+            row=row, column=0, sticky="w", pady=(14, 4))
+        row += 1
 
-        self.period_label = QLabel("3. 내원일 기준 필터")
-        self.period_label.setStyleSheet("font-weight: bold; margin-bottom: 5px; margin-top: 10px;")
-        period_layout.addWidget(self.period_label)
+        self.period = PeriodFilter(self)
+        self.period.grid(row=row, column=0, sticky="w")
+        row += 1
 
-        period_content_layout = QHBoxLayout()
+        # 4. 장기 미내원 기준 필터 (설정 기준보다 오래된 사람만)
+        section_label(self, "4. 내원일 기준 필터(설정 기준보다 오래된 사람만)").grid(
+            row=row, column=0, sticky="w", pady=(14, 4))
+        row += 1
 
-        self.period_value = QLineEdit("6")
-        self.period_value.setFixedWidth(50)
-        self.period_value.setEnabled(False)
-        period_content_layout.addWidget(self.period_value)
+        self.period_old = PeriodFilter(self)
+        self.period_old.grid(row=row, column=0, sticky="w")
+        row += 1
 
-        self.period_group = QButtonGroup(self)
-        self.radio_all = QRadioButton("전체")
-        self.radio_month = QRadioButton("개월")
-        self.radio_year = QRadioButton("년")
+        # 5. 생년월일 필터링 (선택 사항)
+        section_label(self, "5. 생년월일 기준 필터").grid(
+            row=row, column=0, sticky="w", pady=(14, 4))
+        row += 1
 
-        self.radio_all.setChecked(True)
+        birth_frame = ttk.Frame(self)
+        birth_frame.grid(row=row, column=0, sticky="w")
+        row += 1
 
-        self.period_group.addButton(self.radio_all)
-        self.period_group.addButton(self.radio_month)
-        self.period_group.addButton(self.radio_year)
+        self.use_birth_var = tk.BooleanVar(value=False)
+        ttk.Checkbutton(birth_frame, text="생년월일 필터 사용", variable=self.use_birth_var,
+                        command=self._sync_birth_enabled).pack(side="left", padx=(0, 12))
 
-        self.radio_all.toggled.connect(lambda: self.period_value.setEnabled(False))
-        self.radio_month.toggled.connect(lambda: self.period_value.setEnabled(True))
-        self.radio_year.toggled.connect(lambda: self.period_value.setEnabled(True))
+        self.date_start = DateEntry(birth_frame, years_ago(30))
+        self.date_start.pack(side="left")
+        ttk.Label(birth_frame, text="~", font=FONT_BASE).pack(side="left", padx=6)
+        self.date_end = DateEntry(birth_frame, date.today())
+        self.date_end.pack(side="left")
+        self._sync_birth_enabled()
 
-        period_content_layout.addWidget(self.radio_all)
-        period_content_layout.addWidget(self.radio_month)
-        period_content_layout.addWidget(self.radio_year)
-        period_content_layout.addStretch()
+        # 6. 실행 버튼
+        self.btn_run = accent_button(self, "필터링 및 저장", self.run_filter, GREEN, GREEN_ACTIVE)
+        self.btn_run.grid(row=row, column=0, sticky="ew", pady=(18, 6))
+        row += 1
 
-        period_layout.addLayout(period_content_layout)
-        layout.addLayout(period_layout)
+        self.rowconfigure(row, weight=1)
 
-        # 장기 미내원 기준 설정
-        period_layout_old = QVBoxLayout()
-
-        self.period_label_old = QLabel("4. 내원일 기준 필터(설정 기준보다 오래된 사람만)")
-        self.period_label_old.setStyleSheet("font-weight: bold; margin-bottom: 5px; margin-top: 10px;")
-        period_layout_old.addWidget(self.period_label_old)
-
-        period_content_layout_old = QHBoxLayout()
-
-        self.period_value_old = QLineEdit("6")
-        self.period_value_old.setFixedWidth(50)
-        self.period_value_old.setEnabled(False)
-        period_content_layout_old.addWidget(self.period_value_old)
-
-        self.period_group_old = QButtonGroup(self)
-        self.radio_all_old = QRadioButton("전체")
-        self.radio_month_old = QRadioButton("개월")
-        self.radio_year_old = QRadioButton("년")
-
-        self.radio_all_old.setChecked(True)
-
-        self.period_group_old.addButton(self.radio_all_old)
-        self.period_group_old.addButton(self.radio_month_old)
-        self.period_group_old.addButton(self.radio_year_old)
-
-        self.radio_all_old.toggled.connect(lambda: self.period_value_old.setEnabled(False))
-        self.radio_month_old.toggled.connect(lambda: self.period_value_old.setEnabled(True))
-        self.radio_year_old.toggled.connect(lambda: self.period_value_old.setEnabled(True))
-
-        period_content_layout_old.addWidget(self.radio_all_old)
-        period_content_layout_old.addWidget(self.radio_month_old)
-        period_content_layout_old.addWidget(self.radio_year_old)
-        period_content_layout_old.addStretch()
-
-        period_layout_old.addLayout(period_content_layout_old)
-        layout.addLayout(period_layout_old)
-
-        # 4. 생년월일 필터링 (선택 사항)
-        birth_layout = QVBoxLayout()
-
-        self.birth_label = QLabel("5. 생년월일 기준 필터")
-        self.birth_label.setStyleSheet("font-weight: bold; margin-bottom: 5px; margin-top: 10px;")
-        birth_layout.addWidget(self.birth_label)
-
-        birth_content_layout = QHBoxLayout()
-
-        self.check_birth = QCheckBox("생년월일 필터 사용")
-        self.date_start = QDateEdit(QDate.currentDate().addYears(-30))
-        self.date_end = QDateEdit(QDate.currentDate())
-        self.date_start.setCalendarPopup(True)
-        self.date_end.setCalendarPopup(True)
-
-        birth_content_layout.addWidget(self.check_birth)
-        birth_content_layout.addWidget(self.date_start)
-        birth_content_layout.addWidget(QLabel("~"))
-        birth_content_layout.addWidget(self.date_end)
-        birth_content_layout.addStretch()
-
-        birth_layout.addLayout(birth_content_layout)
-        layout.addLayout(birth_layout)
-
-        # 5. 실행 버튼
-        self.btn_run = QPushButton("필터링 및 저장")
-        self.btn_run.setStyleSheet("background-color: #4CAF50; color: white; font-weight: bold; height: 40px; margin-top: 10px;")
-        self.btn_run.clicked.connect(self.run_filter)
-        layout.addWidget(self.btn_run)
-
-        # 최종 여백 추가 및 레이아웃 적용
-        layout.addStretch()
-        self.setLayout(layout)
+    def _sync_birth_enabled(self):
+        enabled = self.use_birth_var.get()
+        self.date_start.set_enabled(enabled)
+        self.date_end.set_enabled(enabled)
 
     def browse_file(self):
-        fname, _ = QFileDialog.getOpenFileName(self, "파일 선택", "", "Excel Files (*.xlsx *.xls)")
+        fname = filedialog.askopenfilename(parent=self, title="파일 선택", filetypes=EXCEL_FILETYPES)
         if fname:
-            self.file_path_display.setText(fname)
+            self.file_path = fname
+            self.file_path_display.config(text=fname)
 
     def run_filter(self):
-        file_path = self.file_path_display.text()
-        password = self.password_edit.text()
-
-        if file_path == "선택된 파일 없음":
-            QMessageBox.warning(self, "경고", "파일을 먼저 선택해주세요.")
+        if not self.file_path:
+            messagebox.showwarning("경고", "파일을 먼저 선택해주세요.", parent=self)
             return
 
+        self.btn_run.config(state="disabled", text="처리 중...")
+        self.update_idletasks()
         try:
-            # 1. 프로세서 호출에 필요한 인자 정리
-            period_type = "전체"
-            if self.radio_month.isChecked():
-                period_type = "개월"
-            elif self.radio_year.isChecked():
-                period_type = "년"
-
-            period_type_old = "전체"
-            if self.radio_month_old.isChecked():
-                period_type_old = "개월"
-            elif self.radio_year_old.isChecked():
-                period_type_old = "년"
+            # 1. 입력값 검증
+            self.period.validate("3. 내원일 기준 필터")
+            self.period_old.validate("4. 내원일 기준 필터(오래된 사람만)")
+            start_date = self.date_start.get_date() if self.use_birth_var.get() else None
+            end_date = self.date_end.get_date() if self.use_birth_var.get() else None
+            if start_date and start_date > end_date:
+                raise ValueError("생년월일 필터의 시작일이 종료일보다 늦습니다.")
 
             # 2. 데이터 처리 실행
             df_result = outbound_list_filter(
-                file_path=file_path,
-                password=password,
-                period_type=period_type,
-                period_type_old=period_type_old,
-                period_value=self.period_value.text(),
-                period_value_old=self.period_value_old.text(),
-                use_birth=self.check_birth.isChecked(),
-                start_date=self.date_start.date().toPython(),
-                end_date=self.date_end.date().toPython()
+                file_path=self.file_path,
+                password=self.password_var.get(),
+                period_type=self.period.period_type,
+                period_type_old=self.period_old.period_type,
+                period_value=self.period.period_value,
+                period_value_old=self.period_old.period_value,
+                use_birth=self.use_birth_var.get(),
+                start_date=start_date,
+                end_date=end_date,
             )
 
-            # 3. 결과 저장
-            save_path, _ = QFileDialog.getSaveFileName(self, "결과 저장", "filtered_outbound.xlsx", "Excel Files (*.xlsx)")
+            # 3. 결과 저장 (resources/outbound_template.xlsx 양식 그대로)
+            save_path = filedialog.asksaveasfilename(
+                parent=self, title="결과 저장", defaultextension=".xlsx",
+                initialfile="filtered_outbound.xlsx", filetypes=EXCEL_SAVE_FILETYPES,
+            )
             if save_path:
-                df_result.to_excel(save_path, index=False)
-                QMessageBox.information(self, "완료", f"필터링 완료!\n총 {len(df_result)}건이 저장되었습니다.")
+                count = save_outbound_list(df_result, save_path)
+                messagebox.showinfo("완료", f"필터링 완료!\n총 {count}건이 저장되었습니다.", parent=self)
 
         except Exception as e:
-            QMessageBox.critical(self, "오류", f"처리 중 오류가 발생했습니다:\n{str(e)}")
+            messagebox.showerror("오류", f"처리 중 오류가 발생했습니다:\n{e}", parent=self)
+        finally:
+            self.btn_run.config(state="normal", text="필터링 및 저장")

@@ -4,8 +4,20 @@ from datetime import datetime
 from dateutil.relativedelta import relativedelta
 from .column_utils import find_actual_column
 
+# 기간 필터 단위 -> relativedelta 인자명
+PERIOD_UNITS = {'개월': 'months', '년': 'years'}
 
-def outbound_list_filter(file_path, password, period_type,period_type_old, period_value, period_value_old, use_birth, start_date, end_date):
+
+def _threshold(period_type, period_value):
+    """기준 시점 계산. period_type이 '전체'면 None (필터 미적용)"""
+    unit = PERIOD_UNITS.get(period_type)
+    if unit is None:
+        return None
+    return datetime.now() - relativedelta(**{unit: int(period_value)})
+
+
+def outbound_list_filter(file_path, password, period_type, period_type_old, period_value,
+                         period_value_old, use_birth, start_date, end_date):
     """
     엑셀 파일을 복호화하고 내원일/생년월일 필터링 및 연락처 정제를 수행합니다.
     """
@@ -34,27 +46,15 @@ def outbound_list_filter(file_path, password, period_type,period_type_old, perio
     df = df.rename(columns={v: k for k, v in mapping_result.items()})
 
     # 4. 필터링 (내원일 기준)
-    if period_type != "전체":
+    visited_after = _threshold(period_type, period_value)          # 이 시점 이후에 내원한 사람만
+    visited_before = _threshold(period_type_old, period_value_old)  # 이 시점 이전이 마지막인 사람만
+
+    if visited_after is not None or visited_before is not None:
         df['마지막 내원일자'] = pd.to_datetime(df['마지막 내원일자'], errors='coerce')
-
-    if period_type == "개월":
-        threshold = datetime.now() - relativedelta(months=int(period_value))
-        df = df[df['마지막 내원일자'] >= threshold]
-    elif period_type == "년":
-        threshold = datetime.now() - relativedelta(years=int(period_value))
-        df = df[df['마지막 내원일자'] >= threshold]
-
-    # 필터링 (내원일 기준 - 장기 미내원)
-    if period_type_old != "전체":
-        df['마지막 내원일자'] = pd.to_datetime(df['마지막 내원일자'], errors='coerce')
-
-    if period_type_old == "개월":
-        threshold = datetime.now() - relativedelta(months=int(period_value_old))
-        df = df[df['마지막 내원일자'] <= threshold]
-    elif period_type_old == "년":
-        threshold = datetime.now() - relativedelta(years=int(period_value_old))
-        df = df[df['마지막 내원일자'] <= threshold]
-
+    if visited_after is not None:
+        df = df[df['마지막 내원일자'] >= visited_after]
+    if visited_before is not None:
+        df = df[df['마지막 내원일자'] <= visited_before]
 
     # 5. 필터링 (생년월일 기준)
     if use_birth:

@@ -4,7 +4,7 @@
 암호화된 엑셀, 병원마다 제각각인 컬럼명, 형식이 뒤섞인 전화번호 데이터를 사람이 손으로 다듬던 과정을 프로그램 하나로 대체하는 것을 목표로 개발했습니다.
 
 ![Python](https://img.shields.io/badge/Python-3.12-3776AB?logo=python&logoColor=white)
-![PySide6](https://img.shields.io/badge/PySide6-Qt6-41CD52?logo=qt&logoColor=white)
+![tkinter](https://img.shields.io/badge/tkinter-GUI-4CAF50?logo=python&logoColor=white)
 ![pandas](https://img.shields.io/badge/pandas-150458?logo=pandas&logoColor=white)
 ![PyInstaller](https://img.shields.io/badge/PyInstaller-EXE%20Build-FFD43B)
 ![Platform](https://img.shields.io/badge/Platform-Windows-0078D6?logo=windows&logoColor=white)
@@ -34,11 +34,12 @@
 ### 1️⃣ 아웃바운드 리스트 필터
 - 마지막 내원일 기준 **최근 N개월/년** 필터와, 반대로 **오래 미내원한 대상만** 골라내는 필터를 동시에 지원
 - 생년월일 범위 지정으로 특정 연령대 타겟팅
-- 결과를 `차트번호 / 이름 / 연락처` 표준 양식으로 저장
+- 결과를 `resources/outbound_template.xlsx` 양식 그대로 저장 (`차트번호 / 환자 이름 / 휴대폰번호` + 우측 작성예시 블록)
 
 ### 2️⃣ 아웃바운드 제한 리스트 생성
-- 문자 발송을 제외해야 할 대상자 명단을 `차트번호 / 이름 / 생년월일 / 연락처 / 아웃바운드 제한 설정` 형식으로 표준화
-- 제한 설정 컬럼이 없으면 자동 생성 후 `O` 값 입력
+- 문자 발송을 제외해야 할 대상자 명단을 `차트번호 / 이름 / 생년월일 / 연락처 / 마지막 내원일자 / 아웃바운드 제한 설정` 형식으로 표준화
+- 제한 설정 컬럼은 원본 값과 무관하게 항상 `O`로 입력
+- 컬럼 구성은 다르지만 글꼴·머리글 색·테두리 서식은 템플릿과 동일하게 적용
 
 ---
 
@@ -46,17 +47,19 @@
 
 | 영역 | 사용 기술 | 비고 |
 | :--- | :--- | :--- |
-| GUI | PySide6 (Qt6) | 탭 기반 멀티 기능 UI |
+| GUI | tkinter / ttk (표준 라이브러리) | 탭 기반 멀티 기능 UI, 추가 설치 불필요 |
 | 데이터 처리 | pandas, python-dateutil | 필터링·정제 로직 |
-| 엑셀 처리 | openpyxl, xlrd, msoffcrypto-tool | 암호화 엑셀 복호화 포함 |
+| 엑셀 처리 | openpyxl, xlrd, msoffcrypto-tool | 암호화 엑셀 복호화 및 템플릿 서식 유지 |
+| OS 연동 | ctypes (COM `IShellLink`) | 바탕화면 바로가기 생성 |
 | 배포 | PyInstaller | 단일 exe 빌드 |
 
 **설계에서 신경 쓴 부분**
 
-- **UI / 비즈니스 로직 분리**: `app_modules/ui_components`(Qt 위젯)와 `app_modules/processors`(순수 데이터 처리 함수)를 분리해, 로직만 따로 테스트하거나 CLI로도 재사용할 수 있는 구조로 설계했습니다.
+- **UI / 비즈니스 로직 분리**: `app_modules/ui_components`(화면)와 `app_modules/processors`(순수 데이터 처리 함수)를 분리해, 로직만 따로 테스트하거나 CLI로도 재사용할 수 있는 구조로 설계했습니다. 덕분에 GUI를 PySide6에서 tkinter로 교체할 때 처리 로직은 손대지 않았습니다.
 - **컬럼명 유연 매칭**: 정규식으로 특수문자·공백을 제거한 뒤 후보 컬럼명 목록과 매칭하는 `find_actual_column()`을 두어, 병원 시스템이 바뀌어도 코드 수정 없이 대응할 수 있게 했습니다.
+- **양식 재현이 아닌 양식 사용**: 결과 파일의 서식을 코드로 흉내 내지 않고 템플릿 엑셀 파일 자체를 열어 값만 채웁니다. 글꼴·머리글 색·테두리·열 너비가 원본과 100% 일치하며, 양식이 바뀌어도 템플릿 파일만 교체하면 됩니다.
 - **체감 속도 개선**: `pandas`, `msoffcrypto` 등 무거운 모듈을 스플래시 화면 표시 이후에 지연 임포트(lazy import)하여, exe 실행 시 첫 화면이 뜨기까지의 체감 대기 시간을 줄였습니다.
-- **배포 편의성**: PyInstaller로 빌드한 최초 실행 시, OneDrive 리다이렉트 환경까지 고려해 바탕화면 바로가기를 자동 생성하도록 처리했습니다(비개발자 사용자를 위한 배려).
+- **배포 편의성**: PyInstaller로 빌드한 최초 실행 시, OneDrive 리다이렉트 환경까지 고려해 바탕화면 바로가기를 자동 생성합니다. 외부 프로세스(`powershell.exe`) 대신 COM `IShellLink`를 직접 호출하므로 `PATH` 환경변수가 깨진 PC에서도 동작하며, 실패하더라도 본 기능 실행에는 영향이 없습니다.
 - **로컬 처리 원칙**: 개인정보(환자 데이터)를 다루는 도구이므로 외부 서버 전송 없이 전 과정을 로컬에서만 처리합니다.
 
 ---
@@ -65,15 +68,21 @@
 
 ```
 outbound_list_program/
-├── main.py                                  # 앱 진입점, 스플래시 화면, 메인 윈도우
+├── main.py                                   # 앱 진입점, 스플래시 화면, 메인 윈도우
 ├── requirements.txt
+├── Outbound_filter_tool.spec                 # PyInstaller 빌드 설정
+├── resources/
+│   └── outbound_template.xlsx                # 결과 파일 양식 (그대로 채워서 저장)
 └── app_modules/
-    ├── processors/                          # 데이터 처리 로직 (UI 비의존)
-    │   ├── column_utils.py                  # 컬럼명 유연 매칭
-    │   ├── excel_password_processor.py      # 암호화 엑셀 복호화
+    ├── win_shortcut.py                       # COM(IShellLink) 바탕화면 바로가기 생성
+    ├── processors/                           # 데이터 처리 로직 (UI 비의존)
+    │   ├── column_utils.py                   # 컬럼명 유연 매칭
+    │   ├── excel_password_processor.py       # 암호화 엑셀 복호화
     │   ├── outbound_list_filter_processor.py # 내원일/생년월일 필터링
-    │   └── outbound_limit_processor.py      # 발송 제한 리스트 생성
-    └── ui_components/                       # PySide6 화면 구성
+    │   ├── outbound_limit_processor.py       # 발송 제한 리스트 생성
+    │   └── template_writer.py                # 템플릿 서식 유지 저장
+    └── ui_components/                        # tkinter 화면 구성
+        ├── widgets.py                        # 공통 위젯·스타일
         ├── outbound_list_filter_ui.py
         └── outbound_limit_ui.py
 ```
@@ -91,8 +100,10 @@ python main.py
 
 **실행 파일(EXE) 빌드**
 
+결과 양식 파일(`resources/outbound_template.xlsx`)을 번들에 포함해야 하므로 spec 파일로 빌드합니다.
+
 ```bash
-pyinstaller --noconfirm --onefile --windowed --name "Outbound_tool" main.py
+pyinstaller --noconfirm Outbound_filter_tool.spec
 ```
 
 ---
@@ -102,8 +113,11 @@ pyinstaller --noconfirm --onefile --windowed --name "Outbound_tool" main.py
 ### 아웃바운드 리스트 필터
 1. [파일 찾기]로 원본 환자 정보 엑셀 파일 선택
 2. 암호가 걸려 있다면 비밀번호 입력 (없으면 공란)
-3. 내원일 필터(개월/년/전체) 및 필요 시 생년월일 범위 설정
-4. [필터링 및 저장] 클릭 → 정제된 결과를 새 엑셀 파일로 저장
+3. 내원일 필터 설정 (두 가지를 함께 사용 가능)
+   - **3번 필터**: 설정 기간 **이내에** 내원한 대상만
+   - **4번 필터**: 설정 기간보다 **오래 미내원한** 대상만
+4. 필요 시 생년월일 범위 설정 (`YYYY-MM-DD` 형식 입력)
+5. [필터링 및 저장] 클릭 → 템플릿 양식으로 새 엑셀 파일 저장
 
 ### 아웃바운드 제한 리스트 생성
 1. [파일 찾기]로 원본 엑셀 파일 선택
@@ -118,7 +132,7 @@ pyinstaller --noconfirm --onefile --windowed --name "Outbound_tool" main.py
 
 | 컬럼명 | 필수여부 | 설명 |
 | :--- | :---: | :--- |
-| **차트번호** | 필수 | 존재 여부 확인용 (출력 시 공란 처리) |
+| **차트번호** | 필수 | 환자 고유번호 (원본 값 그대로 출력) |
 | **이름** | 필수 | 환자 성함 |
 | **연락처** | 필수 | 휴대전화 번호 (010 형식으로 자동 보정) |
 | **마지막 내원일자** | 필수 | 최종 방문일 (내원일 필터 기준) |
