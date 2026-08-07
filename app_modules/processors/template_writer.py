@@ -75,16 +75,19 @@ def _write_rows(ws, rows):
     return len(rows)
 
 
-def save_outbound_list(df, save_path):
-    """아웃바운드 리스트 필터 결과를 템플릿 양식 그대로 저장한다."""
-    missing = [c for c in TEMPLATE_COLUMNS if c not in df.columns]
+def save_outbound_list(records, save_path):
+    """아웃바운드 리스트 필터 결과를 템플릿 양식 그대로 저장한다.
+
+    records - {컬럼명: 값} 목록. TEMPLATE_COLUMNS 순서로 채워 넣는다.
+    """
+    missing = sorted({c for r in records for c in TEMPLATE_COLUMNS if c not in r})
     if missing:
         raise ValueError(f"양식에 필요한 컬럼이 없습니다: {', '.join(missing)}")
 
     wb = _load_template()
     ws = wb.worksheets[0]
 
-    rows = list(df[TEMPLATE_COLUMNS].itertuples(index=False, name=None))
+    rows = [[record[column] for column in TEMPLATE_COLUMNS] for record in records]
     _ensure_styled_rows(ws, len(TEMPLATE_COLUMNS), len(rows))
     count = _write_rows(ws, rows)
 

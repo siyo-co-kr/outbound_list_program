@@ -92,7 +92,7 @@ def main():
     splash = _show_splash(root)
     _apply_styles(root)
 
-    # 아래 임포트 시점에 app_modules 및 pandas·openpyxl 로딩이 발생
+    # 아래 임포트 시점에 app_modules 및 openpyxl 로딩이 발생
     try:
         from app_modules.ui_components.outbound_list_filter_ui import OutboundApp
 

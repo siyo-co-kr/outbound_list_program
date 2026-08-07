@@ -1,6 +1,6 @@
 """템플릿 양식 저장 (template_writer)."""
 
-import pandas as pd
+import openpyxl
 import pytest
 
 from app_modules.processors.template_writer import (TEMPLATE_COLUMNS, _to_text,
@@ -24,22 +24,21 @@ def test_to_text(value, expected):
 
 
 def test_save_round_trips_values_without_losing_leading_zeros(tmp_path):
-    df = pd.DataFrame({
-        '차트번호': ['00123', '00124'],
-        '환자 이름': ['홍길동', '김철수'],
-        '휴대폰번호': ['01011112222', '01033334444'],
-    })
+    records = [
+        {'차트번호': '00123', '환자 이름': '홍길동', '휴대폰번호': '01011112222'},
+        {'차트번호': '00124', '환자 이름': '김철수', '휴대폰번호': '01033334444'},
+    ]
     out = tmp_path / "result.xlsx"
 
-    assert save_outbound_list(df, str(out)) == 2
+    assert save_outbound_list(records, str(out)) == 2
 
-    back = pd.read_excel(out, dtype=str)
-    assert list(back.columns[:3]) == TEMPLATE_COLUMNS
-    assert list(back['차트번호'])[:2] == ['00123', '00124']
-    assert list(back['휴대폰번호'])[:2] == ['01011112222', '01033334444']
+    sheet = openpyxl.load_workbook(out).worksheets[0]
+    assert [sheet.cell(row=1, column=c).value for c in (1, 2, 3)] == TEMPLATE_COLUMNS
+    assert [sheet.cell(row=r, column=1).value for r in (2, 3)] == ['00123', '00124']
+    assert [sheet.cell(row=r, column=3).value for r in (2, 3)] == ['01011112222', '01033334444']
 
 
 def test_save_rejects_a_frame_missing_template_columns(tmp_path):
-    df = pd.DataFrame({'차트번호': ['1'], '환자 이름': ['홍길동']})
+    records = [{'차트번호': '1', '환자 이름': '홍길동'}]
     with pytest.raises(ValueError, match="휴대폰번호"):
-        save_outbound_list(df, str(tmp_path / "x.xlsx"))
+        save_outbound_list(records, str(tmp_path / "x.xlsx"))

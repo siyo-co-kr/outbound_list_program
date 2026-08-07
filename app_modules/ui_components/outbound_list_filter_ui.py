@@ -157,7 +157,7 @@ class OutboundApp(ttk.Frame):
             )
 
             # 3. 결과가 없으면 왜 없는지 처리 내역과 함께 알림
-            if result.df.empty:
+            if not result.rows:
                 messagebox.showwarning(
                     "결과 없음", "조건에 맞는 대상이 없습니다.\n\n" + self._summary(result), parent=self)
                 return
@@ -168,7 +168,7 @@ class OutboundApp(ttk.Frame):
                 initialfile="filtered_outbound.xlsx", filetypes=EXCEL_SAVE_FILETYPES,
             )
             if save_path:
-                count = save_outbound_list(result.df, save_path)
+                count = save_outbound_list(result.rows, save_path)
                 messagebox.showinfo(
                     "완료", f"필터링 완료! 총 {count}건이 저장되었습니다.\n\n" + self._summary(result),
                     parent=self)

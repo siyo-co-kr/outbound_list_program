@@ -47,7 +47,7 @@ def test_report_accounts_for_rows_dropped_as_unparseable(make_xlsx):
 
     result = run(make_xlsx(rows, sheets=('요약', '데이터')), period_type='개월')
 
-    assert len(result.df) == 6
+    assert len(result.rows) == 6
     assert_tally_is_consistent(result.report)
     assert any('해석하지 못한 4건' in w for w in result.warnings)
 
@@ -62,8 +62,8 @@ def test_keeps_original_notation_and_drops_invalid_contacts(make_xlsx):
     ]
     result = run(make_xlsx(rows), period_type='개월')
 
-    assert list(result.df['차트번호']) == ['00123', '00124']
-    assert list(result.df['휴대폰번호']) == ['01011112222', '01033334444']
+    assert [r['차트번호'] for r in result.rows] == ['00123', '00124']
+    assert [r['휴대폰번호'] for r in result.rows] == ['01011112222', '01033334444']
     assert_tally_is_consistent(result.report)
 
 
@@ -72,7 +72,7 @@ def test_duplicate_contacts_keep_the_first_row(make_xlsx):
             ['A1', '먼저', '01012345678', RECENT],
             ['A2', '나중', '010-1234-5678', RECENT]]
     result = run(make_xlsx(rows))
-    assert list(result.df['환자 이름']) == ['먼저']
+    assert [r['환자 이름'] for r in result.rows] == ['먼저']
 
 
 def test_recent_and_long_absent_filters(make_xlsx):
@@ -81,10 +81,10 @@ def test_recent_and_long_absent_filters(make_xlsx):
             ['A2', '장기미내원', '01033334444', LONG_AGO]]
 
     recent_only = run(make_xlsx(rows), period_type='개월', period_value='6')
-    assert list(recent_only.df['환자 이름']) == ['최근내원']
+    assert [r['환자 이름'] for r in recent_only.rows] == ['최근내원']
 
     long_absent = run(make_xlsx(rows), period_type_old='년', period_value_old='3')
-    assert list(long_absent.df['환자 이름']) == ['장기미내원']
+    assert [r['환자 이름'] for r in long_absent.rows] == ['장기미내원']
 
 
 def test_birth_filter_keeps_patients_born_before_1954(make_xlsx):
@@ -96,7 +96,7 @@ def test_birth_filter_keeps_patients_born_before_1954(make_xlsx):
     result = run(make_xlsx(rows), use_birth=True,
                  start_date=date(1940, 1, 1), end_date=date(1950, 1, 1))
 
-    assert list(result.df['환자 이름']) == ['고령환자']
+    assert [r['환자 이름'] for r in result.rows] == ['고령환자']
     assert_tally_is_consistent(result.report)
 
 
@@ -104,7 +104,7 @@ def test_empty_result_still_returns_a_report(make_xlsx):
     rows = [HEADER, ['A1', '홍길동', '01012345678', LONG_AGO]]
     result = run(make_xlsx(rows), period_type='개월', period_value='1')
 
-    assert result.df.empty
+    assert result.rows == []
     assert result.report[0].startswith('원본')
     assert result.report[-1] == '최종 0건'
 
@@ -114,7 +114,7 @@ def test_output_columns_match_the_template(make_xlsx):
 
     rows = [HEADER, ['A1', '홍길동', '01012345678', RECENT]]
     result = run(make_xlsx(rows))
-    assert list(result.df.columns) == TEMPLATE_COLUMNS
+    assert list(result.rows[0]) == TEMPLATE_COLUMNS
 
 
 def test_missing_column_is_reported_by_name(make_xlsx):

@@ -12,28 +12,28 @@ ROW = ['00123', '홍길동', '01012345678', '2026-07-01']
 
 def test_prefers_second_sheet_when_several_exist(make_xlsx):
     path = make_xlsx([HEADER, ROW], sheets=('요약', '데이터'))
-    df, mapping, notes = _load_sheet(path, KEYS)
-    assert len(df) == 1
+    rows, notes = _load_sheet(path, KEYS)
+    assert len(rows) == 1
     assert notes == []                     # 예상대로 읽었으면 알릴 것이 없다
 
 
 def test_uses_only_sheet_when_single(make_xlsx):
-    df, _, notes = _load_sheet(make_xlsx([HEADER, ROW]), KEYS)
-    assert len(df) == 1 and notes == []
+    rows, notes = _load_sheet(make_xlsx([HEADER, ROW]), KEYS)
+    assert len(rows) == 1 and notes == []
 
 
 def test_finds_header_below_the_first_row(make_xlsx):
     path = make_xlsx([HEADER, ROW], skip_rows=3)
-    df, _, notes = _load_sheet(path, KEYS)
-    assert len(df) == 1
+    rows, notes = _load_sheet(path, KEYS)
+    assert len(rows) == 1
     assert any("4행" in n for n in notes)
 
 
 def test_falls_back_to_another_sheet_and_says_so(make_xlsx):
     """엉뚱한 시트를 읽었을 때 사용자가 알아챌 수 있어야 한다."""
     path = make_xlsx([HEADER, ROW], sheets=('표지', '메모', '데이터'))
-    df, _, notes = _load_sheet(path, KEYS)
-    assert len(df) == 1
+    rows, notes = _load_sheet(path, KEYS)
+    assert len(rows) == 1
     assert any("'메모'" in n and "'데이터'" in n for n in notes)
 
 
@@ -63,6 +63,6 @@ def test_missing_column_names_the_key(make_xlsx):
 
 def test_values_are_read_as_text(make_xlsx):
     """앞자리 0이 사라지거나 소수점이 붙으면 안 된다."""
-    df, mapping, _ = _load_sheet(make_xlsx([HEADER, ROW]), KEYS)
-    assert df[mapping['차트번호']][0] == '00123'
-    assert df[mapping['휴대폰번호']][0] == '01012345678'
+    rows, _ = _load_sheet(make_xlsx([HEADER, ROW]), KEYS)
+    assert rows[0]['차트번호'] == '00123'
+    assert rows[0]['휴대폰번호'] == '01012345678'

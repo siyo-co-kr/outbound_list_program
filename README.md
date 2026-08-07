@@ -5,7 +5,6 @@
 
 ![Python](https://img.shields.io/badge/Python-3.12-3776AB?logo=python&logoColor=white)
 ![tkinter](https://img.shields.io/badge/tkinter-GUI-4CAF50?logo=python&logoColor=white)
-![pandas](https://img.shields.io/badge/pandas-150458?logo=pandas&logoColor=white)
 ![PyInstaller](https://img.shields.io/badge/PyInstaller-EXE%20Build-FFD43B)
 ![Platform](https://img.shields.io/badge/Platform-Windows-0078D6?logo=windows&logoColor=white)
 
@@ -43,8 +42,8 @@
 | 영역 | 사용 기술 | 비고 |
 | :--- | :--- | :--- |
 | GUI | tkinter / ttk (표준 라이브러리) | 추가 설치 불필요 |
-| 데이터 처리 | pandas, python-dateutil | 필터링·정제 로직 |
-| 엑셀 처리 | openpyxl, xlrd, msoffcrypto-tool | 암호화 엑셀 복호화 및 템플릿 서식 유지 |
+| 데이터 처리 | 표준 라이브러리, python-dateutil | 필터링·정제 로직 (외부 데이터프레임 라이브러리 없음) |
+| 엑셀 처리 | openpyxl, xlrd, msoffcrypto-tool | .xlsx/.xls 읽기, 암호 복호화, 템플릿 서식 유지 |
 | OS 연동 | ctypes (COM `IShellLink`) | 바탕화면 바로가기 생성 |
 | 배포 | PyInstaller | 단일 exe 빌드 |
 
@@ -52,10 +51,11 @@
 
 - **UI / 비즈니스 로직 분리**: `app_modules/ui_components`(화면)와 `app_modules/processors`(순수 데이터 처리 함수)를 분리해, 로직만 따로 테스트하거나 CLI로도 재사용할 수 있는 구조로 설계했습니다. 덕분에 GUI를 PySide6에서 tkinter로 교체할 때 처리 로직은 손대지 않았습니다.
 - **컬럼명 유연 매칭**: 정규식으로 특수문자·공백을 제거한 뒤 후보 컬럼명 목록과 매칭하는 `resolve_columns()`을 두어, 병원 시스템이 바뀌어도 코드 수정 없이 대응할 수 있게 했습니다. 후보를 "구체적인 이름일수록 앞"으로 정렬해 두어 파일의 컬럼 순서에 결과가 좌우되지 않고, 이미 배정된 컬럼은 재사용하지 않아 서로 다른 항목이 같은 컬럼을 가리켜 값이 뒤섞이는 일이 없습니다.
-- **원본 표기 보존**: 엑셀을 전부 문자열로 읽습니다. pandas의 자동 타입 추론에 맡기면 `00123`이 `123`이 되어 앞자리 0이 사라지고, 빈칸이 섞인 숫자 컬럼은 `1012345678.0`처럼 소수점이 붙어 연락처가 통째로 유실됩니다. 대신 날짜는 형식별로 나누어 해석하는 전용 파서를 두었습니다.
+- **원본 표기 보존**: 엑셀 셀을 전부 문자열로 다룹니다. 숫자로 해석하면 `00123`이 `123`이 되어 앞자리 0이 사라지고, `.xls`의 숫자 셀은 `1012345678.0`처럼 소수점이 붙어 연락처가 통째로 유실됩니다. 날짜는 인정할 형식을 명시적으로 나열한 전용 파서로 해석합니다.
+- **의존성 최소화**: 필터링·중복 제거·집계는 수천 행 단일 패스라 데이터프레임 라이브러리가 필요 없습니다. pandas/numpy를 걷어내 배포 용량을 절반 이하로, 기동 시간을 크게 줄였습니다.
 - **검증 가능한 결과**: 단계별로 몇 건이 걸러졌는지 집계해 완료 창에 함께 보여줍니다. 조용히 사라지는 데이터가 없도록, 날짜를 해석하지 못했거나 컬럼 후보가 여러 개였던 경우도 함께 알립니다.
 - **양식 재현이 아닌 양식 사용**: 결과 파일의 서식을 코드로 흉내 내지 않고 템플릿 엑셀 파일 자체를 열어 값만 채웁니다. 글꼴·머리글 색·테두리·열 너비가 원본과 100% 일치하며, 양식이 바뀌어도 템플릿 파일만 교체하면 됩니다.
-- **체감 속도 개선**: `pandas`, `msoffcrypto` 등 무거운 모듈을 스플래시 화면 표시 이후에 지연 임포트(lazy import)하여, exe 실행 시 첫 화면이 뜨기까지의 체감 대기 시간을 줄였습니다.
+- **체감 속도 개선**: `openpyxl`, `msoffcrypto` 등 무거운 모듈을 스플래시 화면 표시 이후에 지연 임포트(lazy import)하여, 첫 화면이 뜨기까지의 체감 대기 시간을 줄였습니다. `.xls` 전용인 `xlrd`는 실제로 `.xls`를 열 때만 임포트합니다.
 - **배포 편의성**: PyInstaller로 빌드한 최초 실행 시, OneDrive 리다이렉트 환경까지 고려해 바탕화면 바로가기를 자동 생성합니다. 외부 프로세스(`powershell.exe`) 대신 COM `IShellLink`를 직접 호출하므로 `PATH` 환경변수가 깨진 PC에서도 동작하며, 실패하더라도 본 기능 실행에는 영향이 없습니다.
 - **로컬 처리 원칙**: 개인정보(환자 데이터)를 다루는 도구이므로 외부 서버 전송 없이 전 과정을 로컬에서만 처리합니다.
 

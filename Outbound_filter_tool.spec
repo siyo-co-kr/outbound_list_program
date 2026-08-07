@@ -10,11 +10,14 @@ a = Analysis(
     hookspath=[],
     hooksconfig={},
     runtime_hooks=[],
-    # 실제로 설치되어 있으면서 실행에 불필요한 모듈만 제외
+    # 실제로 설치되어 있으면서 실행에 불필요한 모듈만 제외.
+    # numpy/pandas는 더 이상 쓰지 않는다. openpyxl이 numpy를 try/except로 임포트해
+    # 셀에 쓸 수 있는 숫자 타입을 넓히지만, 값은 문자열로만 쓰므로 없어도 무방하다.
     excludes=[
         'unittest',
         'test',
-        'pandas.tests',
+        'numpy',
+        'pandas',
     ],
     noarchive=False,
     optimize=1,
