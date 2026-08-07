@@ -3,7 +3,7 @@ import sys
 import tkinter as tk
 from tkinter import ttk
 
-APP_VERSION = "2.2.0"
+APP_VERSION = "3.0.0"
 APP_TITLE = f"아웃바운드 도구 v{APP_VERSION}"
 
 SPLASH_BG = "#2E7D32"
