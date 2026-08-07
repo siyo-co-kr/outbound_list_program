@@ -6,7 +6,17 @@ msoffcrypto-tool==6.0.0      # 암호가 걸린 엑셀 복호화
 python-dateutil==2.9.0.post0 # relativedelta (내원일 기간 필터)
 xlrd==2.0.2                  # 구형 .xls 읽기
 
-# 개발/빌드 전용
+# 개발/빌드 전용 (실행 파일에는 포함되지 않음)
 pytest==9.1.1                # 처리 로직 테스트 (pytest tests)
-xlwt==1.3.0                  # 테스트용 .xls 픽스처 생성 (실행에는 불필요)
+xlwt==1.3.0                  # 테스트용 .xls 픽스처 생성
+Pillow==12.3.0               # 아이콘 PNG -> 멀티사이즈 .ico 변환 (아래 참고)
 pyinstaller==6.20.0
+
+# 아이콘을 교체할 때: 원본 PNG(정사각, 알파 포함)를 아래처럼 변환한다.
+#   from PIL import Image
+#   src = Image.open('icon.png').convert('RGBA')
+#   sizes = [(256,256),(128,128),(64,64),(48,48),(32,32),(24,24),(16,16)]
+#   frames = [src.resize(s, Image.LANCZOS) for s in sizes]
+#   frames[0].save('resources/app.ico', format='ICO', sizes=sizes, append_images=frames[1:])
+# 크기별로 따로 리샘플해야 16px에서 뭉개지지 않는다.
+# PIL은 .spec의 excludes에 있으므로 번들에는 들어가지 않는다.

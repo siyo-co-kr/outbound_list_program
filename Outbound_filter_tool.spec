@@ -5,19 +5,27 @@ a = Analysis(
     pathex=[],
     binaries=[],
     # 결과 엑셀 양식 파일을 번들에 포함 (template_writer.resource_path 에서 참조)
-    datas=[('resources/outbound_template.xlsx', 'resources')],
+    # app.ico는 exe 아이콘과 별개로 창 아이콘(root.iconbitmap)에도 쓰이므로
+    # 런타임에 읽을 수 있도록 번들에 함께 넣는다.
+    datas=[
+        ('resources/outbound_template.xlsx', 'resources'),
+        ('resources/app.ico', 'resources'),
+    ],
     hiddenimports=['xlrd'],
     hookspath=[],
     hooksconfig={},
     runtime_hooks=[],
     # 실제로 설치되어 있으면서 실행에 불필요한 모듈만 제외.
-    # numpy/pandas는 더 이상 쓰지 않는다. openpyxl이 numpy를 try/except로 임포트해
-    # 셀에 쓸 수 있는 숫자 타입을 넓히지만, 값은 문자열로만 쓰므로 없어도 무방하다.
+    # openpyxl은 numpy(셀에 쓸 수 있는 숫자 타입 확장)와 PIL(시트에 이미지 삽입)을
+    # try/except ImportError로 임포트한다. 값은 문자열로만 쓰고 이미지는 넣지 않으므로
+    # 둘 다 없어도 동작한다. PIL은 아이콘 변환용으로만 설치돼 있는데, 놔두면
+    # 번들에 11MB가 딸려 들어간다.
     excludes=[
         'unittest',
         'test',
         'numpy',
         'pandas',
+        'PIL',
     ],
     noarchive=False,
     optimize=1,
@@ -33,6 +41,7 @@ exe = EXE(
     a.scripts,
     exclude_binaries=True,          # 바이너리는 COLLECT가 폴더에 배치
     name='Outbound_filter_tool',
+    icon='resources/app.ico',
     debug=False,
     bootloader_ignore_signals=False,
     strip=False,

@@ -44,6 +44,7 @@ def _create_desktop_shortcut_once():
             target_path=exe_path,
             working_dir=os.path.dirname(exe_path),
             description=APP_TITLE,
+            icon_path=exe_path,       # exe에 박힌 아이콘을 바로가기에 명시
         )
     except Exception:
         pass
@@ -77,6 +78,22 @@ def _apply_styles(root):
     style.configure(".", font=(FONT_FAMILY, 10))
 
 
+def _apply_window_icon(root):
+    """창 좌상단·Alt+Tab 아이콘 설정 (exe 파일 아이콘과는 별개로 지정해야 한다)
+
+    default= 로 주면 이후 만들어지는 메시지 상자 등에도 함께 적용된다.
+    아이콘은 부가 요소이므로 실패하더라도 실행을 막지 않는다.
+    """
+    try:
+        # resource_path는 openpyxl을 끌어오는 모듈에 있으므로, 무거운 임포트가
+        # 끝난 뒤에 호출해야 스플래시가 늦게 뜨지 않는다.
+        from app_modules.processors.template_writer import resource_path
+
+        root.iconbitmap(default=resource_path("resources", "app.ico"))
+    except Exception:
+        pass
+
+
 def main():
     # 최초 실행 시 바탕화면 바로가기 자동 생성
     _create_desktop_shortcut_once()
@@ -102,6 +119,7 @@ def main():
         # 닫기 버튼이 없어, 남아 있으면 사용자가 치울 방법이 없다.
         splash.destroy()
 
+    _apply_window_icon(root)
     root.deiconify()
     root.lift()
 

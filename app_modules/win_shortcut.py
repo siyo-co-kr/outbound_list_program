@@ -6,7 +6,8 @@ PATH 환경변수가 깨져 있거나 PowerShell 실행이 차단된 PC에서도
 """
 
 import ctypes
-from ctypes import POINTER, WINFUNCTYPE, Structure, byref, c_ulong, c_void_p, c_wchar_p
+from ctypes import (POINTER, WINFUNCTYPE, Structure, byref, c_int, c_ulong, c_void_p,
+                    c_wchar_p)
 from ctypes.wintypes import BOOL, BYTE, DWORD, MAX_PATH, WORD
 
 _ole32 = ctypes.oledll.ole32      # oledll: HRESULT 실패 시 OSError 발생
@@ -25,6 +26,7 @@ _QUERY_INTERFACE = 0
 _RELEASE = 2
 _ISL_SET_DESCRIPTION = 7
 _ISL_SET_WORKING_DIRECTORY = 9
+_ISL_SET_ICON_LOCATION = 17
 _ISL_SET_PATH = 20
 _IPF_SAVE = 6                       # IPersistFile::Save
 
@@ -61,8 +63,14 @@ def get_desktop_dir():
     return buf.value
 
 
-def create_shortcut(shortcut_path, target_path, working_dir=None, description=None):
-    """IShellLinkW로 .lnk 파일을 생성한다. 실패 시 OSError를 발생시킨다."""
+def create_shortcut(shortcut_path, target_path, working_dir=None, description=None,
+                    icon_path=None, icon_index=0):
+    """IShellLinkW로 .lnk 파일을 생성한다. 실패 시 OSError를 발생시킨다.
+
+    icon_path - 아이콘을 명시하지 않으면 탐색기가 대상 파일에서 알아서 가져오지만,
+    한 번 캐시된 아이콘이 그대로 남아 exe 아이콘을 바꿔도 반영되지 않는다.
+    바로가기에 직접 박아 두면 그런 일이 없다.
+    """
     need_uninitialize = True
     try:
         _ole32.CoInitializeEx(None, _COINIT_APARTMENTTHREADED)
@@ -84,6 +92,9 @@ def create_shortcut(shortcut_path, target_path, working_dir=None, description=No
                 _method(link, _ISL_SET_WORKING_DIRECTORY, c_wchar_p)(link, working_dir)
             if description:
                 _method(link, _ISL_SET_DESCRIPTION, c_wchar_p)(link, description)
+            if icon_path:
+                _method(link, _ISL_SET_ICON_LOCATION, c_wchar_p, c_int)(
+                    link, icon_path, icon_index)
 
             persist = c_void_p()
             _method(link, _QUERY_INTERFACE, POINTER(_GUID), POINTER(c_void_p))(
