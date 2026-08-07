@@ -45,7 +45,7 @@
 | 데이터 처리 | 표준 라이브러리, python-dateutil | 필터링·정제 로직 (외부 데이터프레임 라이브러리 없음) |
 | 엑셀 처리 | openpyxl, xlrd, msoffcrypto-tool | .xlsx/.xls 읽기, 암호 복호화, 템플릿 서식 유지 |
 | OS 연동 | ctypes (COM `IShellLink`) | 바탕화면 바로가기 생성 |
-| 배포 | PyInstaller | 단일 exe 빌드 |
+| 배포 | PyInstaller | onedir 폴더 빌드 (기동 속도) |
 
 **설계에서 신경 쓴 부분**
 
@@ -85,6 +85,7 @@ outbound_list_program/
     ├── test_column_utils.py
     ├── test_parsing.py                       # 날짜·연락처 파싱
     ├── test_loading.py                       # 시트·머리글 탐색
+    ├── test_xls.py                           # 구형 .xls 읽기 경로
     ├── test_filter.py                        # 필터 전체 흐름
     └── test_template_writer.py
 ```
@@ -115,6 +116,10 @@ pytest tests
 ```bash
 pyinstaller --noconfirm Outbound_filter_tool.spec
 ```
+
+`dist/Outbound_filter_tool/` 폴더가 만들어집니다. 폴더째 배포하고 안의 `Outbound_filter_tool.exe`로 실행합니다(바탕화면 바로가기는 최초 실행 시 자동 생성).
+
+단일 exe(onefile)가 아닌 폴더(onedir)로 빌드하는 이유는 기동 속도입니다. onefile은 실행할 때마다 번들 전체를 임시 폴더에 풀어내며, 실측 기준 그 압축 해제에만 2.17초가 들어 전체 기동 3.05초의 71%를 차지했습니다. onedir은 그 단계가 없어 평상시 기동이 0.22초입니다.
 
 ---
 
