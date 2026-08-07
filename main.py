@@ -75,7 +75,6 @@ def _apply_styles(root):
     if "vista" in style.theme_names():
         style.theme_use("vista")
     style.configure(".", font=(FONT_FAMILY, 10))
-    style.configure("TNotebook.Tab", font=(FONT_FAMILY, 10, "bold"), padding=(14, 7))
 
 
 def main():
@@ -85,7 +84,7 @@ def main():
 
     root = tk.Tk()
     root.title(APP_TITLE)
-    root.geometry("640x660")
+    root.geometry("640x620")
     root.minsize(600, 560)
     root.withdraw()
 
@@ -94,17 +93,15 @@ def main():
     _apply_styles(root)
 
     # 아래 임포트 시점에 app_modules 및 pandas·openpyxl 로딩이 발생
-    from app_modules.ui_components.outbound_limit_ui import OutboundLimitApp
-    from app_modules.ui_components.outbound_list_filter_ui import OutboundApp
+    try:
+        from app_modules.ui_components.outbound_list_filter_ui import OutboundApp
 
-    notebook = ttk.Notebook(root)
-    notebook.pack(fill="both", expand=True, padx=8, pady=8)
-    notebook.add(OutboundApp(notebook), text="아웃바운드 리스트 필터")
-    notebook.add(OutboundLimitApp(notebook), text="아웃바운드 제한 리스트")
-    notebook.enable_traversal()   # Ctrl+Tab 으로 탭 이동
+        OutboundApp(root).pack(fill="both", expand=True)
+    finally:
+        # 로딩 중 실패하더라도 항상 닫는다. 스플래시는 overrideredirect라
+        # 닫기 버튼이 없어, 남아 있으면 사용자가 치울 방법이 없다.
+        splash.destroy()
 
-    # 메인 윈도우가 준비되면 로딩 화면 닫기
-    splash.destroy()
     root.deiconify()
     root.lift()
 

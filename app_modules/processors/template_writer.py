@@ -5,6 +5,7 @@
 """
 
 import os
+import re
 import sys
 from copy import copy
 
@@ -15,19 +16,7 @@ TEMPLATE_NAME = "outbound_template.xlsx"
 # 템플릿 A1:C1 머리글과 동일한 순서
 TEMPLATE_COLUMNS = ["차트번호", "환자 이름", "휴대폰번호"]
 
-_HEADER_ROW = 1
 _FIRST_DATA_ROW = 2
-_EXAMPLE_BLOCK = ("F1:F3", 6, 9, 3)      # 병합범위, 시작열(F), 끝열(I), 끝행
-
-# 제한 명단 시트의 열 너비 (템플릿 본문 열 너비와 같은 계열)
-_LIMIT_COLUMN_WIDTHS = {
-    "차트번호": 13.5,
-    "이름": 13.5,
-    "생년월일": 15.0,
-    "연락처": 18.8,
-    "마지막 내원일자": 18.0,
-    "아웃바운드 제한 설정": 22.0,
-}
 
 
 def resource_path(*parts):
@@ -46,14 +35,21 @@ def _load_template():
 
 
 def _to_text(value):
-    """텍스트 서식(@) 셀에 넣을 문자열로 변환. 12345.0 -> '12345'"""
+    """텍스트 서식(@) 셀에 넣을 문자열로 변환. 12345.0 / '12345.0' -> '12345'"""
     if value is None or value != value:                  # None 또는 NaN
         return None
     if isinstance(value, float) and value.is_integer():
         return str(int(value))
+
     text = str(value).strip()
     if text.lower() == "nan":
         return None
+
+    # 엑셀이 숫자로 저장한 셀은 문자열로 읽어도 '123.0' 형태가 될 수 있다
+    # (.xls는 xlrd가 모든 숫자를 float으로 돌려준다). 차트번호가 '123.0'으로
+    # 저장되지 않도록, 값 전체가 정수+소수점0일 때만 떼어낸다.
+    text = re.sub(r'^(\d+)\.0+$', r'\1', text)
+
     return text or None
 
 
@@ -79,24 +75,6 @@ def _write_rows(ws, rows):
     return len(rows)
 
 
-def _clear_example_block(ws):
-    """머리글이 3열을 넘는 시트를 만들 때, 템플릿 우측 '작성예시' 블록을 제거"""
-    merged, first_col, last_col, last_row = _EXAMPLE_BLOCK
-    if merged in [str(r) for r in ws.merged_cells.ranges]:
-        ws.unmerge_cells(merged)
-
-    for row in range(1, last_row + 1):
-        for col in range(first_col, last_col + 1):
-            cell = ws.cell(row=row, column=col)
-            cell.value = None
-            cell._style = copy(ws.cell(row=1, column=4)._style)   # D1 = 서식 없는 셀
-
-    for col in range(first_col, last_col + 1):
-        letter = openpyxl.utils.get_column_letter(col)
-        if letter in ws.column_dimensions:
-            del ws.column_dimensions[letter]
-
-
 def save_outbound_list(df, save_path):
     """아웃바운드 리스트 필터 결과를 템플릿 양식 그대로 저장한다."""
     missing = [c for c in TEMPLATE_COLUMNS if c not in df.columns]
@@ -109,41 +87,6 @@ def save_outbound_list(df, save_path):
     rows = list(df[TEMPLATE_COLUMNS].itertuples(index=False, name=None))
     _ensure_styled_rows(ws, len(TEMPLATE_COLUMNS), len(rows))
     count = _write_rows(ws, rows)
-
-    wb.save(save_path)
-    return count
-
-
-def save_limit_list(df, save_path):
-    """제한 명단 결과를 템플릿과 같은 서식(글꼴·테두리·머리글 색)으로 저장한다.
-
-    컬럼 구성이 템플릿(3열)과 달라 우측 '작성예시' 블록은 제거하고
-    머리글/본문 셀 서식만 템플릿에서 그대로 가져와 사용한다.
-    """
-    columns = list(df.columns)
-
-    wb = _load_template()
-    ws = wb.worksheets[0]
-    _clear_example_block(ws)
-
-    # 머리글: 템플릿 A1 서식을 그대로 복제해 컬럼 수만큼 확장
-    for col, name in enumerate(columns, start=1):
-        _copy_style(ws, _HEADER_ROW, 1, _HEADER_ROW, col)
-        ws.cell(row=_HEADER_ROW, column=col).value = name
-
-    rows = list(df.itertuples(index=False, name=None))
-
-    # 본문: 템플릿 A2 서식을 데이터 영역 전체(가로·세로)로 복제
-    template_body_rows = ws.max_row - _FIRST_DATA_ROW + 1
-    for offset in range(max(len(rows), template_body_rows)):
-        for col in range(1, len(columns) + 1):
-            _copy_style(ws, _FIRST_DATA_ROW, 1, _FIRST_DATA_ROW + offset, col)
-
-    count = _write_rows(ws, rows)
-
-    for col, name in enumerate(columns, start=1):
-        letter = openpyxl.utils.get_column_letter(col)
-        ws.column_dimensions[letter].width = _LIMIT_COLUMN_WIDTHS.get(name, 15.0)
 
     wb.save(save_path)
     return count

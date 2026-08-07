@@ -1,5 +1,7 @@
 import tkinter as tk
-from datetime import date
+import traceback
+from datetime import date, datetime
+from pathlib import Path
 from tkinter import filedialog, messagebox, ttk
 
 from ..processors.outbound_list_filter_processor import outbound_list_filter
@@ -7,6 +9,24 @@ from ..processors.template_writer import save_outbound_list
 from .widgets import (EXCEL_FILETYPES, EXCEL_SAVE_FILETYPES, FONT_BASE, FONT_SMALL,
                       GRAY_TEXT, GREEN, GREEN_ACTIVE, NO_FILE, DateEntry, PeriodFilter,
                       accent_button, section_label, years_ago)
+
+LOG_NAME = "아웃바운드_도구_오류.log"
+
+
+def _log_error():
+    """예외 전문을 로그 파일로 남기고 그 경로를 돌려준다.
+
+    화면에 뜨는 한 줄짜리 메시지만으로는 현장에서 원인을 알 수 없다.
+    로그를 남기지 못하더라도 본 오류 안내는 그대로 보여줘야 하므로 조용히 넘어간다.
+    """
+    try:
+        log_path = Path.home() / LOG_NAME
+        with open(log_path, "a", encoding="utf-8") as f:
+            f.write(f"\n===== {datetime.now():%Y-%m-%d %H:%M:%S} =====\n")
+            f.write(traceback.format_exc())
+        return log_path
+    except Exception:
+        return None
 
 
 class OutboundApp(ttk.Frame):
@@ -99,6 +119,14 @@ class OutboundApp(ttk.Frame):
             self.file_path = fname
             self.file_path_display.config(text=fname)
 
+    @staticmethod
+    def _summary(result):
+        """어떤 단계에서 몇 건이 걸러졌는지 사용자가 확인할 수 있는 요약"""
+        lines = ["[처리 내역]"] + [f"· {line}" for line in result.report]
+        if result.warnings:
+            lines += ["", "[확인 필요]"] + [f"· {line}" for line in result.warnings]
+        return "\n".join(lines)
+
     def run_filter(self):
         if not self.file_path:
             messagebox.showwarning("경고", "파일을 먼저 선택해주세요.", parent=self)
@@ -116,7 +144,7 @@ class OutboundApp(ttk.Frame):
                 raise ValueError("생년월일 필터의 시작일이 종료일보다 늦습니다.")
 
             # 2. 데이터 처리 실행
-            df_result = outbound_list_filter(
+            result = outbound_list_filter(
                 file_path=self.file_path,
                 password=self.password_var.get(),
                 period_type=self.period.period_type,
@@ -128,16 +156,26 @@ class OutboundApp(ttk.Frame):
                 end_date=end_date,
             )
 
-            # 3. 결과 저장 (resources/outbound_template.xlsx 양식 그대로)
+            # 3. 결과가 없으면 왜 없는지 처리 내역과 함께 알림
+            if result.df.empty:
+                messagebox.showwarning(
+                    "결과 없음", "조건에 맞는 대상이 없습니다.\n\n" + self._summary(result), parent=self)
+                return
+
+            # 4. 결과 저장 (resources/outbound_template.xlsx 양식 그대로)
             save_path = filedialog.asksaveasfilename(
                 parent=self, title="결과 저장", defaultextension=".xlsx",
                 initialfile="filtered_outbound.xlsx", filetypes=EXCEL_SAVE_FILETYPES,
             )
             if save_path:
-                count = save_outbound_list(df_result, save_path)
-                messagebox.showinfo("완료", f"필터링 완료!\n총 {count}건이 저장되었습니다.", parent=self)
+                count = save_outbound_list(result.df, save_path)
+                messagebox.showinfo(
+                    "완료", f"필터링 완료! 총 {count}건이 저장되었습니다.\n\n" + self._summary(result),
+                    parent=self)
 
         except Exception as e:
-            messagebox.showerror("오류", f"처리 중 오류가 발생했습니다:\n{e}", parent=self)
+            log_path = _log_error()
+            detail = f"\n\n자세한 내용을 아래 파일에 기록했습니다:\n{log_path}" if log_path else ""
+            messagebox.showerror("오류", f"처리 중 오류가 발생했습니다:\n{e}{detail}", parent=self)
         finally:
             self.btn_run.config(state="normal", text="필터링 및 저장")

@@ -7,5 +7,6 @@ msoffcrypto-tool==6.0.0      # 암호가 걸린 엑셀 복호화
 python-dateutil==2.9.0.post0 # relativedelta (내원일 기간 필터)
 xlrd==2.0.2                  # 구형 .xls 읽기
 
-# 빌드 전용
+# 개발/빌드 전용
+pytest==9.1.1                # 처리 로직 테스트 (pytest tests)
 pyinstaller==6.20.0
